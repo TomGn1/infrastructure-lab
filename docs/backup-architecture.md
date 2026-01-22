@@ -138,7 +138,7 @@ La règle 3-2-1 impose trois copies des données dont deux sur des supports diff
 
 # IV. **Test de restauration**
 
-Un test de restauration a été effectué via Veeam File Level Restore. Un fichier à été supprimé puis restauré avec succès, validant l’intégrité du backup de fichiers.
+Un premier test de restauration a été effectué via Veeam File Level Restore le 22/12/2025 à 22:30. Un fichier à été supprimé puis restauré avec succès, validant l’intégrité du backup de fichiers. Des testes seront planifiés de manière périodique.
 
 # V. **Sécurité des backups**
 
