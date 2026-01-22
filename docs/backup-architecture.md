@@ -9,8 +9,8 @@ L’agent Veeam, déployé sur le contrôleur de domaine, communique avec le ser
 
 Afin de respecter la règle de sauvegarde 3-2-1, les backups sont copiés vers un second serveur TrueNAS situé hors du datacenter OVH. Cette réplication s’effectue via une connexion VPN WireGuard sécurisée entre le serveur Veeam et ce NAS.
 
-Schéma de l’architecture mise en place en **[Annexe n°11](#Annexe11)**.
-
+**Schéma de l’architecture mise en place** :
+![architectureDeSauvegarde](/infrastructure_lab/diagrams/architectureSauvegarde.png)
 # II. **Infrastructure de stockage**
 
 ## 1. **Niveau de RAID**
@@ -131,13 +131,12 @@ La règle 3-2-1 impose trois copies des données dont deux sur des supports diff
 	- Adresse : 192.168.1.250
 	- Support : Pool RAIDZ1, HDD (3x600Go)
 
-Le schéma complet de l’infrastructure de sauvegarde ainsi que la mise ne place des tâches de sauvegarde se trouvent en **[Annexe n°12](#Annexe12)** et **[Annexe n°13](#Annexe13)**.
+**Le schéma complet de l’infrastructure de sauvegarde** :
+![planDeSauvegardeEtJobs](/infrastructure_lab/diagrams/planSauvegarde&jobs.png)
 
 # IV. **Test de restauration**
 
 Un test de restauration a été effectué via Veeam File Level Restore. Un fichier à été supprimé puis restauré avec succès, validant l’intégrité du backup de fichiers.
-
-Ce processus a été documenté en **[Annexe n°14](#Annexe14)**.
 
 # V. **Sécurité des backups**
 
@@ -148,8 +147,6 @@ Ce processus a été documenté en **[Annexe n°14](#Annexe14)**.
 	**Configuration des snapshots** :
 	- Fréquence : Quotidienne à 03h00
 	- Rétention : 14 jours
-
-La mise en place des snapshots est documentée en **[Annexe n°15](#Annexe15)**.
 
 Ces snapshots ZFS créent une copie instantanée **immuable** du dataset de backup. Ceux-ci ne peuvent pas être supprimés pendant la durée de rétention même par un compte avec des privilèges élevés (ex. administrateur root).
 
