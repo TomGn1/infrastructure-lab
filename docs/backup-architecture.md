@@ -10,6 +10,7 @@ L’agent Veeam, déployé sur le contrôleur de domaine, communique avec le ser
 Afin de respecter la règle de sauvegarde 3-2-1, les backups sont copiés vers un second serveur TrueNAS situé hors du datacenter OVH. Cette réplication s’effectue via une connexion VPN WireGuard sécurisée entre le serveur Veeam et ce NAS.
 
 **Schéma de l’architecture mise en place** :
+
 ![architectureDeSauvegarde](../diagrams/architectureSauvegarde.png)
 # II. **Infrastructure de stockage**
 
@@ -132,6 +133,7 @@ La règle 3-2-1 impose trois copies des données dont deux sur des supports diff
 	- Support : Pool RAIDZ1, HDD (3x600Go)
 
 **Le schéma complet de l’infrastructure de sauvegarde** :
+
 ![planDeSauvegardeEtJobs](../diagrams/planSauvegarde&jobs.png)
 
 # IV. **Test de restauration**
