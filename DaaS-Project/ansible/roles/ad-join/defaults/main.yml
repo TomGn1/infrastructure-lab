@@ -1,0 +1,28 @@
+---
+# Defaults pour le role ad-join
+
+# Configuration du domaine Active Directory
+ad_domain: "domaine.name"
+ad_realm: "DOMAINE.NAME"  # En MAJUSCULES
+ad_dc_ip: "<ip_DC>"
+
+# Compte de service pour joindre le domaine
+ad_join_user: "svc_ansible"
+# Le mot de passe est dans group_vars/all/vault.yml (chiffré)
+
+# Configuration SSSD
+ad_use_fqdn: false  
+ad_fallback_homedir: "/home/%u"  # Crée /home/<user>
+
+# Packages nécessaires
+ad_packages:
+  - realmd
+  - sssd
+  - sssd-tools
+  - libnss-sss
+  - libpam-sss
+  - adcli
+  - samba-common-bin
+  - packagekit
+  - chrony  # Pour la synchro temps (important pour Kerberos)
+

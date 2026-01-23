@@ -1,0 +1,197 @@
+---
+# ========================================
+# Configuration Desktop Ephemeral
+# ========================================
+
+# --- Utilisateur de session temporaire ---
+- name: Créer l'utilisateur de session temporaire
+  user:
+    name: "{{ session_user }}"
+    groups: sudo
+    shell: /bin/bash
+    create_home: yes
+  when: session_user is defined and session_user != 'sessionuser'
+  tags: user
+
+- name: Définir le mot de passe de session
+  user:
+    name: "{{ session_user }}"
+    password: "{{ session_password | password_hash('sha512') }}"
+  when:
+    - session_user is defined
+    - session_user != 'sessionuser'
+    - session_password is defined
+  tags: user
+
+# --- Configuration XRDP pour users AD ---
+- name: Installer pam_mount pour montage automatique Samba
+  apt:
+    name:
+      - libpam-mount
+      - cifs-utils
+    state: present
+  tags: xrdp
+
+- name: Créer le répertoire de logs XRDP avec bonnes permissions
+  file:
+    path: /var/log/xrdp
+    state: directory
+    owner: xrdp
+    group: xrdp
+    mode: '0755'
+  tags: xrdp
+
+- name: Créer les fichiers de logs XRDP
+  file:
+    path: "{{ item }}"
+    state: touch
+    owner: xrdp
+    group: xrdp
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+  loop:
+    - /var/log/xrdp/xrdp.log
+    - /var/log/xrdp/xrdp-sesman.log
+  tags: xrdp
+
+- name: Configurer les chemins absolus dans xrdp.ini
+  lineinfile:
+    path: /etc/xrdp/xrdp.ini
+    regexp: '^LogFile='
+    line: 'LogFile=/var/log/xrdp/xrdp.log'
+    state: present
+  notify: restart xrdp
+  tags: xrdp
+
+- name: Configurer les chemins absolus dans sesman.ini
+  lineinfile:
+    path: /etc/xrdp/sesman.ini
+    regexp: '^LogFile='
+    line: 'LogFile=/var/log/xrdp/xrdp-sesman.log'
+    state: present
+  notify: restart xrdp
+  tags: xrdp
+
+- name: Configurer PAM pour autoriser les users AD dans XRDP
+  copy:
+    dest: /etc/pam.d/xrdp-sesman
+    content: |
+      #%PAM-1.0
+      @include common-auth
+      
+      # Autoriser les users du domaine AVANT common-account
+      account    sufficient    pam_succeed_if.so user ingroup g_linux_admins
+      account    sufficient    pam_succeed_if.so user ingroup sudo
+      
+      @include common-account
+      @include common-session
+      @include common-password
+      
+      session    required      pam_limits.so
+      session    required      pam_loginuid.so
+      session    optional      pam_systemd.so
+    mode: '0644'
+  notify: restart xrdp
+  tags: xrdp
+
+- name: Configurer pam_mount.conf.xml pour montage Samba automatique
+  copy:
+    dest: /etc/security/pam_mount.conf.xml
+    content: |
+      <?xml version="1.0" encoding="utf-8" ?>
+      <!DOCTYPE pam_mount SYSTEM "pam_mount.conf.xml.dtd">
+      <pam_mount>
+        <debug enable="0" />
+
+        <mntoptions allow="nosuid,nodev,loop,encryption,fsck,nonempty,allow_root,allow_other" />
+        <mntoptions require="nosuid,nodev" />
+
+        <logout wait="0" hup="no" term="no" kill="no" />
+        <mkmountpoint enable="1" remove="true" />
+
+        <!-- Montage automatique avec credentials AD de l'utilisateur -->
+        <volume
+            user="*"
+            fstype="cifs"
+            server="{{ samba_server }}"
+            path="{{ samba_share }}"
+            mountpoint="~/Partage"
+            options="domain=PROTO,sec=ntlmssp,vers=3.0,uid=%(USERUID),gid=%(USERGID),file_mode=0644,dir_mode=0755"
+        />
+      </pam_mount>
+    mode: '0644'
+  tags: samba
+
+- name: Activer pam_mount dans common-auth
+  lineinfile:
+    path: /etc/pam.d/common-auth
+    line: 'auth optional pam_mount.so'
+    state: present
+  tags: samba
+
+- name: Activer pam_mount dans common-session
+  lineinfile:
+    path: /etc/pam.d/common-session
+    line: 'session optional pam_mount.so'
+    insertafter: '^session.*required.*pam_unix.so'
+    state: present
+  tags: samba
+
+# --- Configuration utilisateur local (pour testuser) ---
+- name: Créer le point de montage utilisateur local
+  file:
+    path: "/home/{{ session_user }}/Partage"
+    state: directory
+    owner: "{{ session_user }}"
+    mode: '0755'
+  when: session_user is defined and session_user != 'sessionuser'
+  tags: user
+
+- name: Configurer les credentials Samba pour utilisateur local
+  copy:
+    content: |
+      username={{ ad_join_user }}
+      password={{ ad_join_password }}
+      domain=PROTO
+    dest: "/etc/samba-{{ session_user }}.creds"
+    mode: '0600'
+    owner: root
+  when: 
+    - session_user is defined
+    - session_user != 'sessionuser'
+    - ad_join_password is defined
+  tags: user
+
+- name: Monter le partage Samba pour utilisateur local
+  mount:
+    path: "/home/{{ session_user }}/Partage"
+    src: "//{{ samba_server }}/{{ samba_share }}"
+    fstype: cifs
+    opts: "credentials=/etc/samba-{{ session_user }}.creds,uid={{ session_user }},gid={{ session_user }},_netdev,nofail"
+    state: mounted
+  when: session_user is defined and session_user != 'sessionuser'
+  tags: user
+
+# --- Monitoring d'inactivité ---
+- name: Créer le script de monitoring d'inactivité
+  template:
+    src: inactivity-monitor.sh.j2
+    dest: /usr/local/bin/inactivity-monitor.sh
+    mode: '0755'
+  tags: monitoring
+
+- name: Créer le service systemd pour le monitoring
+  template:
+    src: inactivity-monitor.service.j2
+    dest: /etc/systemd/system/inactivity-monitor.service
+    mode: '0644'
+  tags: monitoring
+
+- name: Activer et démarrer le service de monitoring
+  systemd:
+    name: inactivity-monitor
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  tags: monitoring

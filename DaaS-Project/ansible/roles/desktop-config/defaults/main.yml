@@ -1,0 +1,8 @@
+---
+# Configuration desktop ephemeral
+session_user: "sessionuser"
+session_timeout: 1800  # 30 minutes en secondes
+samba_server: "<ip_serveur>"
+samba_share: "partages"
+samba_user: "%(USER)"
+orchestrator_url: "http://<ip_serveur>:5000"  # IP de ton serveur orchestrateur

@@ -1,0 +1,12 @@
+---
+# Handlers pour le role ad-join
+
+- name: restart sssd
+  service:
+    name: sssd
+    state: restarted
+
+- name: restart sshd
+  service:
+    name: sshd
+    state: restarted

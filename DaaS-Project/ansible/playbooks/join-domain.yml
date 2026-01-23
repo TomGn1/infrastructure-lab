@@ -1,0 +1,45 @@
+---
+- name: Joindre les VMs Ubuntu au domaine Active Directory domain.name
+  hosts: all
+  gather_facts: yes
+  become: yes
+  
+  vars_files:
+    - ../group_vars/all/vault.yml  # Charge explicitement le vault
+  
+  vars:
+    ad_domain: "domaine.name"
+    ad_dc_ip: "<ip_DC>"
+    ad_join_user: "svc_ansible"
+    # ad_join_password vient du vault chargé ci-dessus
+  
+  pre_tasks:
+    - name: Vérifier que le mot de passe vault est chargé
+      assert:
+        that:
+          - ad_join_password is defined
+          - ad_join_password != "PLACEHOLDER"
+        fail_msg: "Le mot de passe du vault n'est pas chargé !"
+        success_msg: "Mot de passe vault chargé avec succès"
+    
+    - name: Afficher les informations de la cible
+      debug:
+        msg:
+          - "Cible: {{ inventory_hostname }}"
+          - "IP: {{ ansible_host }}"
+          - "User AD: {{ ad_join_user }}"
+          - "Password: [CACHÉ]"
+  
+  roles:
+    - ad-join
+  
+  post_tasks:
+    - name: Message de succès
+      debug:
+        msg:
+          - "==========================================="
+          - "   VM {{ inventory_hostname }} jointe au domaine !"
+          - "==========================================="
+          - ""
+          - "   Vous pouvez maintenant vous connecter avec :"
+          - "   ssh ubuntu_admin@{{ ansible_host }}"

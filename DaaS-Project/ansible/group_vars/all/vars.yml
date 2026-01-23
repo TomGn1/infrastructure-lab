@@ -1,0 +1,9 @@
+---
+# Variables globales (non sensibles)
+
+# Configuration du domaine
+ad_domain: "domaine.name"
+ad_dc_ip: "<ip_DC>"
+ad_join_user: "svc_ansible"
+
+# Le mot de passe est dans vault.yml (chiffré)
