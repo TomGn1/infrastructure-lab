@@ -1,9 +1,0 @@
-# Copier ce fichier en terraform.tfvars et remplir avec les vraies valeurs
-
-api_url          = "https://ton-proxmox:8006/api2/json"
-token_id         = "ton-token-id"
-token_secret     = "ton-token-secret"
-proxmox_host     = "ton-node-proxmox"
-template_name    = "ton-template"
-nic_name         = "vmbr0"
-

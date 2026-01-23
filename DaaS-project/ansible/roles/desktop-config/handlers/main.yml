@@ -1,8 +1,0 @@
----
-- name: restart xrdp
-  systemd:
-    name: "{{ item }}"
-    state: restarted
-  loop:
-    - xrdp
-    - xrdp-sesman
