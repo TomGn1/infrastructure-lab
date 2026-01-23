@@ -1,0 +1,33 @@
+---
+- name: Configurer un desktop éphémère
+  hosts: all
+  gather_facts: yes
+  become: yes
+  
+  vars_files:
+    - ../group_vars/all/vault.yml
+  
+  vars:
+    vm_name: "{{ inventory_hostname }}"
+    # Ces variables seront passées en extra-vars
+    # session_user: "user123"
+    # session_password: "MotDePasseTemporaire"
+    # vm_name: "desktop-abc123"
+    
+  roles:
+    - ad-join          # Réutilise ton rôle existant
+    - desktop-config   # Nouveau rôle pour la config desktop
+
+  post_tasks:
+    - name: Afficher les informations de connexion
+      debug:
+        msg:
+          - "==========================================="
+          - "   Desktop {{ vm_name }} prêt !"
+          - "==========================================="
+          - ""
+          - "   Connexion RDP :"
+          - "   Adresse: {{ ansible_host }}:3389"
+          - "   Utilisateur: {{ session_user | default('ubuntu_admin@proto.lan') }}"
+          - ""
+          - "   Partage réseau monté sur: ~/Partage"

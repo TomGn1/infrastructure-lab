@@ -1,0 +1,10 @@
+---
+- name: Test variable
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Debug password
+      debug:
+        msg: "Password = {{ ad_join_password }}"

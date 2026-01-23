@@ -1,0 +1,13 @@
+---
+- name: Test variable sur domain_vms
+  hosts: domain_vms
+  gather_facts: no
+  
+  tasks:
+    - name: Debug toutes les variables
+      debug:
+        msg: 
+          - "ad_domain = {{ ad_domain }}"
+          - "ad_dc_ip = {{ ad_dc_ip }}"
+          - "ad_join_user = {{ ad_join_user }}"
+          - "ad_join_password = {{ ad_join_password }}"

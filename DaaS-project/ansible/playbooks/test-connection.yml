@@ -1,0 +1,12 @@
+---
+- name: Tester la connectivité Ansible
+  hosts: domain_vms
+  gather_facts: no
+
+  tasks:
+    - name: Ping les hosts
+      ping:
+
+    - name: Afficher un message
+      debug:
+        msg: "Connexion réussie à {{ inventory_hostname }} !"

@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Inventaire dynamique Ansible qui lit le terraform.tfstate
+"""
+
+import json
+import sys
+import os
+
+# Chemin vers le tfstate
+TFSTATE_PATH = "/srv/samba/terraform/environments/production/terraform.tfstate"
+
+def read_tfstate():
+    """Lit le fichier terraform.tfstate"""
+    if not os.path.exists(TFSTATE_PATH):
+        return {"_meta": {"hostvars": {}}}
+    
+    with open(TFSTATE_PATH, 'r') as f:
+        return json.load(f)
+
+def generate_inventory():
+    """Génère l'inventaire Ansible depuis le tfstate"""
+    tfstate = read_tfstate()
+    
+    inventory = {
+        "_meta": {
+            "hostvars": {}
+        },
+        "domain_vms": {
+            "hosts": [],
+            "vars": {
+                "ansible_user": "ubuntu",
+                "ansible_ssh_private_key_file": "~/.ssh/id_rsa",
+                "ansible_python_interpreter": "/usr/bin/python3",
+                "ansible_become": True,
+                "ansible_become_method": "sudo"
+            }
+        }
+    }
+    
+    # Parcourt les ressources dans le tfstate
+    for resource in tfstate.get("resources", []):
+        if resource.get("type") == "proxmox_vm_qemu":
+            for instance in resource.get("instances", []):
+                attributes = instance.get("attributes", {})
+                
+                # Récupère le nom et l'IP
+                vm_name = attributes.get("name", "unknown")
+                vm_ip = attributes.get("default_ipv4_address")
+                
+                if vm_ip:
+                    # Ajoute au groupe domain_vms
+                    inventory["domain_vms"]["hosts"].append(vm_name)
+                    
+                    # Ajoute les variables spécifiques à cet host
+                    inventory["_meta"]["hostvars"][vm_name] = {
+                        "ansible_host": vm_ip
+                    }
+    
+    return inventory
+
+if __name__ == "__main__":
+    # Si appelé avec --list, retourne l'inventaire complet
+    if len(sys.argv) == 2 and sys.argv[1] == "--list":
+        inventory = generate_inventory()
+        print(json.dumps(inventory, indent=2))
+    
+    # Si appelé avec --host, retourne les vars de l'host
+    elif len(sys.argv) == 3 and sys.argv[1] == "--host":
+        # Les hostvars sont déjà dans _meta, donc on retourne un dict vide
+        print(json.dumps({}))
+    
+    else:
+        print("Usage: inventory.yaml --list")
+        sys.exit(1)

@@ -1,0 +1,104 @@
+#!/bin/bash
+
+ORCHESTRATOR_URL="{{ orchestrator_url }}"
+VM_NAME="{{ vm_name }}"
+
+INACTIVE_THRESHOLD=1800  # 30 minutes
+CHECK_INTERVAL=30
+INACTIVE_COUNT=0
+MAX_CHECKS=2
+GRACE_PERIOD=300  # 5 minutes de grâce
+
+log_message() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | logger -t inactivity-monitor
+}
+
+check_active_sessions() {
+    # Vérifier les sessions xrdp
+    XRDP_SESSIONS=$(ps aux | grep "xrdp-sesman.*session" | grep -v grep | wc -l)
+    
+    # Vérifier loginctl
+    LOGINCTL_SESSIONS=$(loginctl list-sessions --no-legend 2>/dev/null | wc -l)
+    
+    # Vérifier who
+    WHO_SESSIONS=$(who | wc -l)
+    
+    # Total
+    TOTAL=$((XRDP_SESSIONS + LOGINCTL_SESSIONS + WHO_SESSIONS))
+    
+    log_message "Sessions: XRDP=$XRDP_SESSIONS, loginctl=$LOGINCTL_SESSIONS, who=$WHO_SESSIONS (Total=$TOTAL)"
+    
+    echo $TOTAL
+}
+
+get_uptime_seconds() {
+    cat /proc/uptime | awk '{print int($1)}'
+}
+
+log_message "Monitoring démarré pour VM: $VM_NAME"
+
+# Phase 1 : Période de grâce (attendre première connexion OU 5 minutes)
+log_message "Phase de grâce : attente première connexion (max $GRACE_PERIOD secondes)"
+
+GRACE_START=$(date +%s)
+FIRST_CONNECTION_DETECTED=false
+
+while true; do
+    CURRENT_TIME=$(date +%s)
+    ELAPSED=$((CURRENT_TIME - GRACE_START))
+    
+    SESSIONS=$(check_active_sessions)
+    
+    if [ $SESSIONS -gt 0 ]; then
+        log_message "Première connexion détectée ! Fin de la période de grâce."
+        FIRST_CONNECTION_DETECTED=true
+        break
+    fi
+    
+    if [ $ELAPSED -ge $GRACE_PERIOD ]; then
+        log_message "Période de grâce terminée ($GRACE_PERIOD secondes écoulées), aucune connexion détectée."
+        break
+    fi
+    
+    sleep 10
+done
+
+# Phase 2 : Surveillance normale
+log_message "Démarrage de la surveillance d'inactivité (seuil: $INACTIVE_THRESHOLD secondes)"
+
+while true; do
+    SESSIONS=$(check_active_sessions)
+    
+    if [ $SESSIONS -eq 0 ]; then
+        INACTIVE_COUNT=$((INACTIVE_COUNT + 1))
+        log_message "Aucune session active ($INACTIVE_COUNT/$MAX_CHECKS)"
+        
+        if [ $INACTIVE_COUNT -ge $MAX_CHECKS ]; then
+            log_message "Seuil d'inactivité atteint, destruction de la VM"
+            
+            # Appeler l'API
+            RESPONSE=$(curl -s -X POST \
+                -H "Content-Type: application/json" \
+                -d "{\"session_id\": \"$VM_NAME\"}" \
+                "$ORCHESTRATOR_URL/api/session/destroy" 2>&1)
+            
+            if [ $? -eq 0 ]; then
+                log_message "API appelée avec succès: $RESPONSE"
+            else
+                log_message "Erreur lors de l'appel API: $RESPONSE"
+            fi
+            
+            break
+        fi
+    else
+        # Reset du compteur si session active
+        if [ $INACTIVE_COUNT -gt 0 ]; then
+            log_message "Session active, reset du compteur"
+        fi
+        INACTIVE_COUNT=0
+    fi
+    
+    sleep $CHECK_INTERVAL
+done
+
+log_message "Monitoring terminé"

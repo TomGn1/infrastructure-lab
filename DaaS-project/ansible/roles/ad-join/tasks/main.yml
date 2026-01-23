@@ -1,0 +1,141 @@
+---
+# Tasks pour joindre une VM Ubuntu au domaine Active Directory
+
+- name: Mettre à jour le cache APT
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  tags: packages
+
+- name: Installer les packages nécessaires pour AD
+  apt:
+    name: "{{ ad_packages }}"
+    state: present
+  tags: packages
+
+- name: Configurer le DNS pour pointer vers le DC
+  lineinfile:
+    path: /etc/resolv.conf
+    line: "nameserver {{ ad_dc_ip }}"
+    insertbefore: BOF
+    state: present
+  tags: dns
+
+- name: Vérifier que le DC est accessible
+  command: "ping -c 2 {{ ad_dc_ip }}"
+  register: ping_dc
+  changed_when: false
+  failed_when: ping_dc.rc != 0
+  tags: connectivity
+
+- name: Synchroniser l'heure avec le DC (critique pour Kerberos)
+  service:
+    name: chrony
+    state: started
+    enabled: yes
+  tags: time
+
+- name: Découvrir le domaine Active Directory
+  command: "realm discover {{ ad_domain }}"
+  register: realm_discover
+  changed_when: false
+  failed_when:
+    - realm_discover.rc != 0
+    - "'configured' not in realm_discover.stdout"
+  tags: discovery
+
+- name: Afficher les informations du domaine découvert
+  debug:
+    var: realm_discover.stdout_lines
+  tags: discovery
+
+- name: Vérifier si déjà joint au domaine
+  command: "realm list"
+  register: realm_list
+  changed_when: false
+  failed_when: false
+  tags: check
+
+- name: Joindre le domaine Active Directory
+  shell: |
+    echo "{{ ad_join_password }}" | realm join --user={{ ad_join_user }} {{ ad_domain }}
+  register: join_result
+  when: "ad_domain not in realm_list.stdout"
+  failed_when:
+    - join_result.rc != 0
+    - "'Already joined' not in join_result.stderr"
+  notify: restart sssd
+  tags: join
+  #no_log: true  # Cache le mot de passe dans les logs
+
+- name: Configurer SSSD pour utiliser les noms courts
+  lineinfile:
+    path: /etc/sssd/sssd.conf
+    regexp: '^use_fully_qualified_names'
+    line: 'use_fully_qualified_names = {{ ad_use_fqdn | lower }}'
+    state: present
+  notify: restart sssd
+  tags: sssd
+
+- name: Configurer SSSD pour le répertoire home
+  lineinfile:
+    path: /etc/sssd/sssd.conf
+    regexp: '^fallback_homedir'
+    line: 'fallback_homedir = {{ ad_fallback_homedir }}'
+    insertafter: '^\[domain'
+    state: present
+  notify: restart sssd
+  tags: sssd
+
+- name: Autoriser tous les utilisateurs AD à se connecter
+  command: "realm permit --all"
+  changed_when: false
+  tags: permissions
+
+- name: Configurer PAM pour créer les home directories automatiquement
+  lineinfile:
+    path: /etc/pam.d/common-session
+    line: 'session required pam_mkhomedir.so skel=/etc/skel/ umask=0077'
+    insertafter: '^session.*pam_unix.so'
+    state: present
+  tags: pam
+
+- name: Activer l'authentification par mot de passe SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+  notify: restart sshd
+  tags: ssh
+
+- name: Activer KbdInteractive pour PAM/SSSD (nécessaire pour users AD)
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?KbdInteractiveAuthentication'
+    line: 'KbdInteractiveAuthentication yes'
+    state: present
+  notify: restart sshd
+  tags: ssh
+
+- name: Autoriser le groupe g_linux_admins dans SSH
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'AllowGroups g_linux_admins sudo'
+    regexp: '^AllowGroups'
+    insertafter: '^#?PasswordAuthentication'
+  notify: restart sshd
+  tags: ssh
+
+- name: Vérifier que la jonction a réussi
+  command: "realm list"
+  register: final_check
+  changed_when: false
+  tags: verify
+
+- name: Afficher le statut final
+  debug:
+    msg:
+      - "Machine jointe au domaine {{ ad_domain }}"
+      - "{{ final_check.stdout_lines }}"
+  when: "ad_domain in final_check.stdout"
+  tags: verify
