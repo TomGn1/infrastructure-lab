@@ -1,6 +1,6 @@
 # Guide d'installation - DaaS Orchestrator
 
-Ce guide détaille l'installation complète du système Desktop as a Service, de A à Z.
+Ce guide détaille l'installation complète du système Desktop as a Service.
 
 ---
 
@@ -40,7 +40,7 @@ Ce guide détaille l'installation complète du système Desktop as a Service, de
 ### Accès requis
 
 - ✅ Accès SSH root/sudo sur serveur orchestrateur
-- ✅ Accès Web à Proxmox (https://proxmox:8006)
+- ✅ Accès Web à Proxmox (<https://proxmox:8006>)
 - ✅ Compte administrateur AD pour jointure domaine
 - ✅ Token API Proxmox avec droits VM.
 
@@ -49,6 +49,7 @@ Ce guide détaille l'installation complète du système Desktop as a Service, de
 ## Étape 1 : Préparation de l'infrastructure
 
 ### 1.1 Créer le template Ubuntu sur Proxmox
+
 ```bash
 # Se connecter à Proxmox via SSH
 ssh root@<ip_hôte>
@@ -79,6 +80,7 @@ qm template 9000
 ```
 
 ### 1.2 Créer le token API Proxmox
+
 ```bash
 # Via l'interface web Proxmox
 # Datacenter → Permissions → API Tokens
@@ -91,6 +93,7 @@ qm template 9000
 ```
 
 ### 1.3 Vérifier Active Directory
+
 ```powershell
 # Sur le serveur AD (PowerShell)
 
@@ -109,6 +112,7 @@ nslookup ubuntu-srv.proto.lan
 ```
 
 ### 1.4 Configurer Samba
+
 ```bash
 # Sur le serveur Samba
 # Créer le partage principal si pas déjà fait
@@ -131,6 +135,7 @@ sudo systemctl restart smbd
 ## Étape 2 : Installation du serveur orchestrateur
 
 ### 2.1 Préparer le serveur
+
 ```bash
 # Se connecter au serveur
 ssh ubuntu_admin@<ip_serveur>
@@ -143,6 +148,7 @@ sudo apt install -y git curl wget vim python3 python3-pip python3-venv
 ```
 
 ### 2.2 Installer Terraform
+
 ```bash
 # Ajouter le repository HashiCorp
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -159,6 +165,7 @@ terraform version
 ```
 
 ### 2.3 Installer Ansible
+
 ```bash
 # Installer Ansible
 sudo apt install -y ansible
@@ -173,6 +180,7 @@ ansible-galaxy collection install community.general
 ```
 
 ### 2.4 Créer la structure de dossiers
+
 ```bash
 # Créer l'arborescence
 sudo mkdir -p /srv/samba/{terraform,ansible,orchestrator}
@@ -187,6 +195,7 @@ tree -L 1 /srv/samba
 ## Étape 3 : Configuration Terraform
 
 ### 3.1 Cloner ou créer les fichiers Terraform
+
 ```bash
 cd /srv/samba/terraform
 mkdir -p ephemeral
@@ -194,9 +203,11 @@ cd ephemeral
 ```
 
 ### 3.2 Créer main.tf
+
 ```bash
 nano main.tf
 ```
+
 ```hcl
 terraform {
   required_providers {
@@ -300,9 +311,11 @@ output "vm_ip" {
 ```
 
 ### 3.3 Créer variables.tf
+
 ```bash
 nano variables.tf
 ```
+
 ```hcl
 variable "token_id" {
   description = "Proxmox API Token ID"
@@ -324,9 +337,11 @@ variable "ssh_key" {
 ```
 
 ### 3.4 Créer terraform.tfvars (SECRETS)
+
 ```bash
 nano terraform.tfvars
 ```
+
 ```hcl
 token_id     = "root@pam!terraform"
 token_secret = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
@@ -343,6 +358,7 @@ echo ".terraform/" >> .gitignore
 ```
 
 ### 3.5 Initialiser et tester Terraform
+
 ```bash
 # Initialiser Terraform
 terraform init
@@ -368,15 +384,18 @@ terraform destroy -auto-approve
 ## Étape 4 : Configuration Ansible
 
 ### 4.1 Créer la structure Ansible
+
 ```bash
 cd /srv/samba/ansible
 mkdir -p {playbooks,roles,inventory,group_vars/all}
 ```
 
 ### 4.2 Créer ansible.cfg
+
 ```bash
 nano ansible.cfg
 ```
+
 ```ini
 [defaults]
 inventory = ./inventory/inventory.yaml
@@ -395,6 +414,7 @@ pipelining = True
 ```
 
 ### 4.3 Créer le mot de passe Ansible Vault
+
 ```bash
 # Créer le fichier (JAMAIS commiter sur Git !)
 nano .vault_pass
@@ -406,22 +426,26 @@ echo ".vault_pass" >> .gitignore
 ```
 
 ### 4.4 Créer le fichier vault.yml (secrets)
+
 ```bash
 # Créer le fichier chiffré
 ansible-vault create group_vars/all/vault.yml
 ```
 
 Contenu :
+
 ```yaml
 ---
 ad_join_password: "MotDePasseAdminAD"
 ```
 
 ### 4.5 Créer l'inventaire dynamique
+
 ```bash
 nano inventory/inventory.yaml
 chmod +x inventory/inventory.yaml
 ```
+
 ```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -522,6 +546,7 @@ if __name__ == "__main__":
 ```
 
 ### 4.6 Tester l'inventaire
+
 ```bash
 # Lister l'inventaire
 ./inventory/inventory.yaml --list
@@ -533,6 +558,7 @@ ansible-inventory --list
 ### 4.7 Créer les rôles Ansible
 
 **Note** : Les rôles `ad-join` et `desktop-config` devraient déjà être créés. Vérifier leur présence :
+
 ```bash
 tree roles/
 ```
@@ -540,9 +566,11 @@ tree roles/
 Si manquants, se référer aux fichiers existants ou les recréer selon la documentation technique.
 
 ### 4.8 Créer le playbook principal
+
 ```bash
 nano playbooks/deploy-desktop.yml
 ```
+
 ```yaml
 ---
 - name: Configurer un desktop éphémère
@@ -580,6 +608,7 @@ nano playbooks/deploy-desktop.yml
 ```
 
 ### 4.9 Tester Ansible
+
 ```bash
 # Créer une VM de test avec Terraform
 cd /srv/samba/terraform/ephemeral
@@ -602,11 +631,13 @@ terraform destroy -auto-approve
 ## Étape 5 : Déploiement de l'orchestrateur
 
 ### 5.1 Créer l'application Flask
+
 ```bash
 cd /srv/samba/orchestrator
 ```
 
 **Créer app.py** (utiliser le fichier app.py complet créé précédemment)
+
 ```bash
 nano app.py
 ```
@@ -614,6 +645,7 @@ nano app.py
 Coller le contenu complet de l'orchestrateur Flask.
 
 ### 5.2 Créer l'environnement virtuel Python
+
 ```bash
 # Créer le venv
 python3 -m venv venv
@@ -629,6 +661,7 @@ deactivate
 ```
 
 ### 5.3 Tester Flask manuellement
+
 ```bash
 # Activer le venv
 source venv/bin/activate
@@ -645,9 +678,11 @@ deactivate
 ```
 
 ### 5.4 Créer le service systemd
+
 ```bash
 sudo nano /etc/systemd/system/orchestrator-daas.service
 ```
+
 ```ini
 [Unit]
 Description=Orchestrateur DaaS - Desktop as a Service
@@ -673,6 +708,7 @@ WantedBy=multi-user.target
 ```
 
 ### 5.5 Activer et démarrer le service
+
 ```bash
 # Recharger systemd
 sudo systemctl daemon-reload
@@ -691,6 +727,7 @@ sudo journalctl -u orchestrator-daas -f
 ```
 
 ### 5.6 Tester l'API
+
 ```bash
 # Test simple
 curl http://<ip_serveur>:5000/
@@ -711,6 +748,7 @@ curl -X POST http://<ip_serveur>:5000/api/session/create \
 ### 6.1 Client Windows (PowerShell)
 
 **Sur un poste Windows du domaine** :
+
 ```powershell
 # Créer le dossier
 New-Item -Path "C:\Scripts" -ItemType Directory -Force
@@ -729,6 +767,7 @@ New-Item -Path "C:\Scripts" -ItemType Directory -Force
 ### 6.2 Client Linux (bash)
 
 **Sur un poste Linux** :
+
 ```bash
 # Installer les dépendances
 sudo apt install -y curl jq freerdp2-x11
@@ -748,9 +787,11 @@ chmod +x ~/request-desktop.sh
 ```
 
 **Créer le raccourci bureau** :
+
 ```bash
 nano ~/Desktop/DaaS-Desktop.desktop
 ```
+
 ```ini
 [Desktop Entry]
 Version=1.0
@@ -764,6 +805,7 @@ Categories=Network;RemoteAccess;
 ```
 
 Remplacer `USERNAME` par ton nom d'utilisateur.
+
 ```bash
 # Rendre exécutable et fiable
 chmod +x ~/Desktop/DaaS-Desktop.desktop
@@ -802,6 +844,7 @@ gio set ~/Desktop/DaaS-Desktop.desktop metadata::trusted true
 6. Observer la destruction
 
 ### 7.2 Vérifications côté serveur
+
 ```bash
 # Sur ubuntu-srv
 
@@ -817,6 +860,7 @@ curl http://<ip_serveur>:5000/api/sessions
 ```
 
 ### 7.3 Test de charge (optionnel)
+
 ```bash
 # Créer 3 desktops en parallèle (depuis 3 terminaux)
 
@@ -844,6 +888,7 @@ sudo journalctl -u orchestrator-daas -f
 ## Dépannage
 
 ### Problème : Terraform ne trouve pas le template
+
 ```bash
 # Vérifier que le template existe
 ssh root@<ip_hôte>
@@ -853,6 +898,7 @@ qm list | grep template
 ```
 
 ### Problème : Ansible ne peut pas SSH vers la VM
+
 ```bash
 # Vérifier que la clé SSH est bien injectée
 terraform output
@@ -866,6 +912,7 @@ cat ~/.ssh/authorized_keys
 ```
 
 ### Problème : La VM ne rejoint pas le domaine AD
+
 ```bash
 # SSH sur la VM
 ssh ubuntu@<VM_IP>
@@ -881,6 +928,7 @@ sudo realm join -U Administrator proto.lan
 ```
 
 ### Problème : Le partage Samba ne monte pas
+
 ```bash
 # SSH sur la VM
 ssh ubuntu@<VM_IP>
@@ -893,6 +941,7 @@ sudo mount -t cifs //<ip_samba>/Partage /mnt/test -o username=testuser,domain=PR
 ```
 
 ### Problème : L'orchestrateur ne démarre pas
+
 ```bash
 # Voir les logs
 sudo journalctl -u orchestrator-daas -n 100
@@ -910,6 +959,7 @@ python app.py
 ```
 
 ### Problème : Le monitoring ne détruit pas la VM
+
 ```bash
 # SSH sur la VM
 ssh ubuntu@<VM_IP>
@@ -929,6 +979,7 @@ curl http://<ip_serveur>:5000/api/sessions
 ## Maintenance
 
 ### Mise à jour du template Ubuntu
+
 ```bash
 # SSH sur Proxmox
 ssh root@<ip_hôte>
@@ -944,6 +995,7 @@ wget https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.i
 ```
 
 ### Mise à jour de l'orchestrateur
+
 ```bash
 # Arrêter le service
 sudo systemctl stop orchestrator-daas
@@ -957,6 +1009,7 @@ sudo systemctl start orchestrator-daas
 ```
 
 ### Backup des configurations
+
 ```bash
 # Créer un backup
 cd /srv/samba
@@ -982,4 +1035,3 @@ Après l'installation, consulter :
 - [TECHNICAL.md](TECHNICAL.md) - Documentation technique développeur
 
 ---
-
