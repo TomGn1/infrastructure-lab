@@ -33,7 +33,7 @@ Ce script contient les fonctionnalités suivantes :
 
 ## III.**Réalisation**
 
-Le script complet se trouve en **[Annexe n°10](#Annexe10)**.
+Le script complet se trouve dans [Mise en place du projet](./Mise-en-place-du-projet.md#iv-script-de-déploiement-de-machines-virtuelles-reliées-à-un-domaine.md)
 
 ### 1. **Structure du script**
 
