@@ -192,7 +192,7 @@ La migration est maintenant complètement achevée. Tous les serveurs et VMs son
 
 ## VI. Annexes
 
-### Annexe 1 : Création du cluster Proxmox
+### [Annexe 1 : Création du cluster Proxmox](#1-création-dune-grappe-de-serveur)
 
 Je me suis assuré que les 2 hôtes ont la même version de Proxmox afin d'éviter tout problèmes de compatibilité :
 
@@ -291,7 +291,7 @@ Membership information
 
 ---
 
-### Annexe 2 : Diagramme réseau
+### [Annexe 2 : Diagramme réseau](#iv-migration-des-machines-virtuelles-critiques-et-maintien-des-interconnexions-réseau)
 
 **Architecture réseau de l'hôte Proxmox migré :**
 
@@ -304,7 +304,7 @@ Membership information
 
 ---
 
-### Annexe 3 : État du routeur pfSense avant migration
+### [Annexe 3 : État du routeur pfSense avant migration](#iv-migration-des-machines-virtuelles-critiques-et-maintien-des-interconnexions-réseau)
 
 Vérification de l'état général du système :
 
@@ -360,7 +360,7 @@ cat /cf/conf/config.xml > /tmp/pfsense-backup-$(date +%Y%m%d).xml
 
 ---
 
-### Annexe 4 : Vérifications post-migration
+### [Annexe 4 : Vérifications post-migration](#iv-migration-des-machines-virtuelles-critiques-et-maintien-des-interconnexions-réseau)
 
 Avant d'effectuer le démarrage de la VM pfSense, je m'assure que la table de routage sur le nouvel hôte Proxmox est identique à l'ancien :
 
