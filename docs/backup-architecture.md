@@ -163,3 +163,7 @@ Durant la mise en place de cette solution de sauvegarde, j’ai constaté plusie
 - Les deux NAS dépendent de la même solution : TrueNAS. La bonne pratique serait de diversifier les solutions afin d’éviter que des vulnérabilités ou défaillances critiques venant de la solution n’impacte l’intégralité des sauvegardes stockées.
 
 - Une mise à niveau vers une version plus récente de Veeam serait à envisager. En effet les versions plus récentes prennent mieux en charge les restaurations d’objets Active Directory de Windows Server 2025. De plus elles possèdent une prise en charge native de l’hyperviseur Proxmox simplifiant la restauration de machines virtuelles.
+
+---
+
+_Documentation réalisée dans le cadre du titre professionnel TSSR - Tom GUENIN_
