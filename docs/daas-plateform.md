@@ -27,7 +27,7 @@ L'objectif est de fournir une solution **Infrastructure as Code** permettant :
 
 ## v1 - Deploy-Project
 
-> [**📁 Accéder au projet**](./Deploy-Project)
+> [**📁 Accéder au projet**](../Deploy-Project)
 
 Première itération du projet, développée comme proof of concept pour valider l'approche IaC.
 
@@ -48,7 +48,7 @@ Première itération du projet, développée comme proof of concept pour valider
 
 ## v2 - DaaS-Project
 
-> [**📁 Accéder au projet**](#./DaaS-Project)
+> [**📁 Accéder au projet**](#../DaaS-Project)
 
 Évolution vers une architecture orientée services, découplant l'orchestration de l'exécution.
 
@@ -76,4 +76,3 @@ Première itération du projet, développée comme proof of concept pour valider
 |Scripting|Bash, Python|
 |Identity|Active Directory, SSSD, realmd|
 |Backend|Flask (v2)|
-
