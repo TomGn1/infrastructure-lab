@@ -48,7 +48,7 @@ Première itération du projet, développée comme proof of concept pour valider
 
 ## v2 - DaaS-Project
 
-> [**📁 Accéder au projet**](#../DaaS-Project)
+> [**📁 Accéder au projet**](../DaaS-Project)
 
 Évolution vers une architecture orientée services, découplant l'orchestration de l'exécution.
 
