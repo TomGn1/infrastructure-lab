@@ -3,8 +3,9 @@
 Mon laboratoire d'apprentissage Infrastructure as Code et automatisation.
 
 ## À propos
-[Courte intro : Admin Sys en transition DevOps, TSSR certifié, AIS en préparation]
+
 TSSR certifié, c'est en cherchant à automatiser mes déploiements que j'ai découvert le DevOps. Aujourd'hui je gère un homelab où je mets en pratique Terraform, Ansible et Proxmox. 
+
 Objectif 2026-2027 : 
 - Décrocher l'AIS pour sécuriser ces infrastructures.
 - Déployer un cluster Kubernetes dans mon homelab
