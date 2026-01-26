@@ -12,10 +12,10 @@ Objectif 2026-2027 :
 ## Projets
 
 ### Automatisation & IaC
-| Projet                                    | Stack                     | Description                             |
-| ----------------------------------------- | ------------------------- | --------------------------------------- |
-| [DaaS Platform](./daas-project/README.md) | Flask, Terraform, Ansible | Desktop-as-a-Service avec orchestration |
-| [Deploy Automation](./Deploy-Project/)    | Bash, Terraform, Ansible  | Déploiement automatisé + AD Join        |
+| Projet                                 | Stack                     | Description                             |
+| -------------------------------------- | ------------------------- | --------------------------------------- |
+| [DaaS Platform](./DaaS-Project/)       | Flask, Terraform, Ansible | Desktop-as-a-Service avec orchestration |
+| [Deploy Automation](./Deploy-Project/) | Bash, Terraform, Ansible  | Déploiement automatisé + AD Join        |
 
 ### Infrastructure & Réseau  
 | Projet               | Stack              | Description                                                 |
